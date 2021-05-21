@@ -19,13 +19,12 @@ int main(void)
    printf("\t abort : abort any drawing in progreess \r\n");
    printf("\t stop  : stop the drawer routines \r\n");
    printf("\t new filename : start new drawing based on black pixels coordinates on file names as filename parameter \r\n");
+   printf("\t next : emulate the conclusion of previous pixel \r\n");
 
    while (1)
    {
       
       fgets(inputstr, 100, stdin);
-
-      printf("input string :%s", inputstr);
 
       pch = strtok(inputstr, " \n");
       if (pch == NULL)
@@ -33,7 +32,6 @@ int main(void)
          continue;
       }
 
-      printf("input %s", pch);
       if (!strcmp(pch,"abort"))
       {
          drawer_abort();
@@ -50,6 +48,14 @@ int main(void)
             strcpy(filename, pch);
             drawer_request(filename);
          }
+      }
+      else if (!strcmp(pch, "next"))
+      {
+         drawer_notify_pixel_done();
+      }
+      else
+      {
+         printf("\r\n unknown command \r\n");
       }
    }
 }
