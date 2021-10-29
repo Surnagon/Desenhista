@@ -47,25 +47,25 @@ void montagem_matrix(int coord[1200]){ // Essa funcao serah movida para dentro d
 int main(void)
 {
 	int pin_servo = 0;
-    int pin_led = 4;
-    int pin_btn = 7;
+	int pin_led = 4;
+	int pin_btn = 7;
 	float angulo;
 	int pid_filho = 0;
 	wiringPiSetup();
 	pinMode(pin_servo, OUTPUT);
-    pinMode(pin_led, OUTPUT);
-    pinMode(pin_btn, INPUT);
+	pinMode(pin_led, OUTPUT);
+	pinMode(pin_btn, INPUT);
 
 	while(1)
 	{
 		printf("Digite um ângulo entre -90 e 90 graus: ");
 		scanf("%f", &angulo);
 
-        digitalWrite(pin_led, HIGH);
-        usleep(3000000);
-        take_picture();
-        usleep(300000);
-        digitalWrite(pin_led, LOW);
+		digitalWrite(pin_led, HIGH);
+		usleep(3000000);
+		take_picture();
+		usleep(300000);
+		digitalWrite(pin_led, LOW);
 
 		if(pid_filho != 0)
 			kill(pid_filho, SIGKILL);
