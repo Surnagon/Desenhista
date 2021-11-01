@@ -1,10 +1,61 @@
 #include <wiringPi.h>
 #include <stdio.h>
+//~ #include <stdlib.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <math.h>
+#include <pthread.h>
 // #include "coordenadas.h"
+float INNER_ARM = 14.5;
+float OUTER_ARM = 14.5;
+float X = 20.0;
+float Y = 27.0;
+float IX = 100.0;
+float IY = 135.0;
+float OFFSET = 0.5;
+
+typedef struct {
+	float arr[3];
+}coord;
+
+float degrees(float radians){
+	float degree = radians*180.0/M_PI;
+	return degree;
+}
+
+coord pixels_to_polar(coord pixel_coord){
+	coord polar_coord;
+	float x = pixel_coord.arr[0] * X / IX + 2*OFFSET;
+	//~ printf("%f\n", X);
+	//~ printf("%f\n", IX);
+	//~ printf("%f\n", pixel_coord.arr[0]);
+	printf("ponto: %f\n", x);
+	float y = pixel_coord.arr[1] * Y / IY + OFFSET;
+	//~ printf("%f\n", Y);
+	//~ printf("%f\n", IY);
+	//~ printf("%f\n", pixel_coord.arr[1]);
+	//~ printf("ponto: %f\n", y);
+	float hypotenuse = sqrt(pow(x,2) + pow(y,2));
+	float hypotenuse_angle = asin(x/hypotenuse);
+	//~ printf("%f\n", hypotenuse_angle);
+	float inner_angle = acos(
+    (pow(hypotenuse,2) + pow(INNER_ARM,2) - pow(OUTER_ARM,2)) / (2 * hypotenuse * INNER_ARM)
+	);
+	float shoulder_motor_angle = hypotenuse_angle - inner_angle;
+	//~ printf("%f\n", shoulder_motor_angle);
+	float outer_angle = acos(
+    (pow(INNER_ARM,2) + pow(OUTER_ARM,2) - pow(hypotenuse,2)) / (2 * INNER_ARM * OUTER_ARM)
+	);
+	float elbow_motor_angle = M_PI/2 - outer_angle;
+	//~ printf("%f\n", elbow_motor_angle);
+	polar_coord.arr[0] = degrees(shoulder_motor_angle);
+	polar_coord.arr[1] = degrees(elbow_motor_angle);
+	polar_coord.arr[2] = pixel_coord.arr[2];
+	printf("%f\n", polar_coord.arr[0]);
+	printf("%f\n", polar_coord.arr[1]);
+	return polar_coord;
+}
 
 void control_servo(float angulo_anterior, float angulo, int pin_out)
 {
@@ -32,8 +83,9 @@ void control_servo(float angulo_anterior, float angulo, int pin_out)
 int main(void)
 {
 	int pin_servo[3] = {15, 9, 8};
-	float angulo[3];
-	float angulo_anterior[3] = {0.0, 0.0, 0.0};
+	coord pixel;
+	//~ coord angulo;
+	coord angulo_anterior = {0.0, 0.0, 0.0};
 	int pin_led = 4;
 	int pin_btn = 7;
 	pid_t pid_filho = 0;
@@ -43,26 +95,51 @@ int main(void)
 	pinMode(pin_servo[2], OUTPUT);
 	pinMode(pin_led, OUTPUT);
 	pinMode(pin_btn, INPUT);
-	int i;
+	int i, j;
+	pthread_t thId;
+	
 	while(1)
 	{
-		printf("Digite um ângulo entre -90 e 90 graus: ");
-		scanf("%f", &angulo[0]);
-		scanf("%f", &angulo[1]);
-		scanf("%f", &angulo[2]);
+		//~ printf("Digite um ângulo entre -90 e 90 graus: ");
+		//~ scanf("%f", &angulo[0]);
+		//~ scanf("%f", &angulo[1]);
+		//~ scanf("%f", &angulo[2]);
 		
-		digitalWrite(pin_led, HIGH);
-		usleep(3000000);
-		digitalWrite(pin_led, LOW);
-		
-		for(i=0; i<3; i++)
-		{
-			pid_filho = fork();
-			if(pid_filho==0)
-				control_servo(angulo_anterior[i], angulo[i], pin_servo[i]);
-			if(pid_filho != 0)
-				angulo_anterior[i] = angulo[i];
-				//kill(pid_filho, SIGKILL);
+		//~ printf("Digite um ângulo entre -90 e 90 graus: ");
+		//~ scanf("%f", &pixel.arr[0]);
+		//~ scanf("%f", &pixel.arr[1]);
+		//~ scanf("%f", &pixel.arr[2]);
+		for(j=0; j<=100; j++) {
+			pixel = {j, 67.5, 90};
+			coord angulo = pixels_to_polar(pixel);
+			
+			
+			digitalWrite(pin_led, HIGH);
+			usleep(300000);
+			digitalWrite(pin_led, LOW);
+			
+			//~ thId = pthread_self();
+			//~ pthread_attr_t thAttr;
+			//~ int policy = 0;
+			//~ int max_prio_for_policy = 0;
+
+			//~ pthread_attr_init(&thAttr);
+			//~ pthread_attr_getschedpolicy(&thAttr, &policy);
+			//~ max_prio_for_policy = sched_get_priority_max(policy);
+
+
+			//~ pthread_setschedprio(thId, max_prio_for_policy);
+			//~ pthread_attr_destroy(&thAttr);
+				for(i=0; i<3; i++)
+				{
+					pid_filho = fork();
+					if(pid_filho==0)
+						
+						control_servo(angulo_anterior.arr[i], angulo.arr[i], pin_servo[i]);
+					if(pid_filho != 0)
+						angulo_anterior.arr[i] = angulo.arr[i];
+						//kill(pid_filho, SIGKILL);
+				}
 		}
 	}
 	return 0;
