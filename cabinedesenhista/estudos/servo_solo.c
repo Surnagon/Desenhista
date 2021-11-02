@@ -6,7 +6,10 @@
 #include <unistd.h>
 #include <math.h>
 #include <pthread.h>
+#include <sstream>
+#include <fstream>
 // #include "coordenadas.h"
+
 float INNER_ARM = 14.5;
 float OUTER_ARM = 14.5;
 float X = 20.0;
@@ -23,6 +26,8 @@ float degrees(float radians){
 	float degree = radians*180.0/M_PI;
 	return degree;
 }
+
+
 
 coord pixels_to_polar(coord pixel_coord){
 	coord polar_coord;
@@ -49,9 +54,16 @@ coord pixels_to_polar(coord pixel_coord){
 	);
 	float elbow_motor_angle = M_PI/2 - outer_angle;
 	//~ printf("%f\n", elbow_motor_angle);
-	polar_coord.arr[0] = degrees(shoulder_motor_angle);
+	polar_coord.arr[0] = degrees(shoulder_motor_angle) + 10*OFFSET;
 	polar_coord.arr[1] = degrees(elbow_motor_angle);
 	polar_coord.arr[2] = pixel_coord.arr[2];
+	if (pixel_coord.arr[2] == 1) {
+		polar_coord.arr[2] = 90.0;
+	} else if (pixel_coord.arr[2] == 0) {
+		polar_coord.arr[2] = 0.0;
+	} else if (pixel_coord.arr[2] > 1) {
+		polar_coord.arr[2] = -90.0;
+	}
 	printf("%f\n", polar_coord.arr[0]);
 	printf("%f\n", polar_coord.arr[1]);
 	return polar_coord;
@@ -95,8 +107,8 @@ int main(void)
 	pinMode(pin_servo[2], OUTPUT);
 	pinMode(pin_led, OUTPUT);
 	pinMode(pin_btn, INPUT);
-	int i, j;
-	pthread_t thId;
+	int i, j, k;
+	//~ pthread_t thId;
 	
 	while(1)
 	{
@@ -109,37 +121,70 @@ int main(void)
 		//~ scanf("%f", &pixel.arr[0]);
 		//~ scanf("%f", &pixel.arr[1]);
 		//~ scanf("%f", &pixel.arr[2]);
-		for(j=0; j<=100; j++) {
-			pixel = {j, 67.5, 90};
-			coord angulo = pixels_to_polar(pixel);
-			
-			
-			digitalWrite(pin_led, HIGH);
-			usleep(300000);
-			digitalWrite(pin_led, LOW);
-			
-			//~ thId = pthread_self();
-			//~ pthread_attr_t thAttr;
-			//~ int policy = 0;
-			//~ int max_prio_for_policy = 0;
+		
+		int matrix[76][100];
+		//~ float polar[76000][3];
+		std::ifstream file("cartesianas.csv");
 
-			//~ pthread_attr_init(&thAttr);
-			//~ pthread_attr_getschedpolicy(&thAttr, &policy);
-			//~ max_prio_for_policy = sched_get_priority_max(policy);
+		for(int row = 0; row < 76; ++row)
+		{
+			std::string line;
+			std::getline(file, line);
+			if ( !file.good() )
+				break;
+
+			std::stringstream iss(line);
+
+			for (int col = 0; col < 100; ++col)
+			{
+				std::string val;
+				std::getline(iss, val, ',');
+				if ( !iss.good() )
+					break;
+
+				std::stringstream convertor(val);
+				convertor >> matrix[row][col];
+			}
+		}
+		
+		for (j=0; j<76; j++) {
+			for (k=0; k<100; k++) {
+				//~ polar[][0] = 
+				//~ polar[][0] = 
+				//~ polar[][0] = 
+			
+				pixel.arr[0] = j;
+				pixel.arr[1] = k;
+				pixel.arr[2] = matrix[j][k];
+				coord angulo = pixels_to_polar(pixel);
+				
+				
+				digitalWrite(pin_led, HIGH);
+				usleep(300000);
+				digitalWrite(pin_led, LOW);
+				
+				//~ thId = pthread_self();
+				//~ pthread_attr_t thAttr;
+				//~ int policy = 0;
+				//~ int max_prio_for_policy = 0;
+
+				//~ pthread_attr_init(&thAttr);
+				//~ pthread_attr_getschedpolicy(&thAttr, &policy);
+				//~ max_prio_for_policy = sched_get_priority_max(policy);
 
 
-			//~ pthread_setschedprio(thId, max_prio_for_policy);
-			//~ pthread_attr_destroy(&thAttr);
-				for(i=0; i<3; i++)
+				//~ pthread_setschedprio(thId, max_prio_for_policy);
+				//~ pthread_attr_destroy(&thAttr);
+				for(i=2; i>=0; i--)
 				{
 					pid_filho = fork();
 					if(pid_filho==0)
-						
 						control_servo(angulo_anterior.arr[i], angulo.arr[i], pin_servo[i]);
 					if(pid_filho != 0)
 						angulo_anterior.arr[i] = angulo.arr[i];
 						//kill(pid_filho, SIGKILL);
 				}
+			}
 		}
 	}
 	return 0;
