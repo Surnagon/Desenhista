@@ -20,8 +20,8 @@ float X = 17.0;
 float Y = 24.0;
 float IX = 100.0;
 float IY = 135.0;
-const int COLS = 100;
-const int ROWS = 133;
+int COLS = 100;
+int ROWS = 76;
 float OFFSET = 0.5;
 
 typedef struct {
@@ -29,8 +29,8 @@ typedef struct {
 }coord;
 
 coord pixel;
-coord polar[ROWS*COLS];
-coord polar_sorted[ROWS*COLS];
+coord polar[7600];
+coord polar_sorted[13500];
 coord angulo;
 
 float degrees(float radians){
@@ -81,61 +81,50 @@ coord pixels_to_polar(coord pixel_coord){
 
 void control_servo(float angulo_anterior, float angulo, int pin_out)
 {
-	//~ int w = 0;
+	int w = 0;
 	float t = 0;
+	float subtarefa = 10.0;
 	float distancia = angulo - angulo_anterior;
-	float subtarefa = fabs(distancia);
-	//~ if (pin_out == 8) {
-		//~ subtarefa = 1.0;
-		//~ distancia = distancia;
-	//~ }
-	float subangulo;
-	int high_us = (int)(-angulo*100.0/9.0 + 1500.0);
-	int low_us  = 20000 - high_us;
-	while(t<subtarefa)
-	{
-		//~ subangulo = angulo_anterior + t*distancia/subtarefa;
-		//~ subangulo = angulo;
-		//~ if (pin_out == 8) {
-			//~ subangulo = angulo;
-		//~ }
-		//~ high_us = (int)(-angulo*100.0/9.0 + 1500.0);
-		//~ low_us  = 20000 - high_us;
-		digitalWrite(pin_out, HIGH);
-		usleep(high_us);
-		digitalWrite(pin_out, LOW);
-		usleep(low_us);
-		t = t + 1.0;
+	if (pin_out == 8) {
+		subtarefa = 1.0;
+		distancia = distancia;
 	}
-	//~ while(w<subtarefa)
+	float subangulo;
+	float subtempo = distancia/subtarefa;
+	int high_us;
+	int low_us;
+	//~ high_us = (int)(-angulo*100.0/9.0 + 1500.0);
+	//~ low_us  = 20000 - high_us;
+	//~ while(t<fabs(distancia))
 	//~ {
-		//~ subangulo = angulo_anterior + t*distancia/subtarefa;
-		//~ high_us = (int)(-subangulo*100.0/9.0 + 1500.0);
-		//~ low_us  = 20000 - high_us;
-		//~ while(t<fabs(subtempo))
-		//~ {
-			//~ digitalWrite(pin_out, HIGH);
-			//~ usleep(high_us);
-			//~ digitalWrite(pin_out, LOW);
-			//~ usleep(low_us);
-			//~ t = t + 1.0;
-		//~ } w++;
+		//~ digitalWrite(pin_out, HIGH);
+		//~ usleep(high_us);
+		//~ digitalWrite(pin_out, LOW);
+		//~ usleep(low_us);
+		//~ t = t + 1.0;
 	//~ }
+	while(w<subtarefa)
+	{
+		subangulo = angulo_anterior + t*distancia/subtarefa;
+		high_us = (int)(-subangulo*100.0/9.0 + 1500.0);
+		low_us  = 20000 - high_us;
+		while(t<fabs(subtempo))
+		{
+			digitalWrite(pin_out, HIGH);
+			usleep(high_us);
+			digitalWrite(pin_out, LOW);
+			usleep(low_us);
+			t = t + 1.0;
+		} w++;
+	}
 	printf("Caiu!!!");
 	kill(getpid(), SIGKILL);
 }
 
-void polaroide (bool qual_csv) {
-	std::string arquivo_csv;
-	if (qual_csv == true) {
-		arquivo_csv = "pretoebranco.csv";
-	} else {
-		arquivo_csv = "vermelho.csv";
-	}
-		
+void polaroide () {
 	int j, k;
 	int matrix[COLS][ROWS];
-	std::ifstream file(arquivo_csv);
+	std::ifstream file("cartesianas.csv");
 
 	for(int row = 0; row < ROWS; ++row) {
 		std::string line;
@@ -197,21 +186,21 @@ void sortido(bool insideout) {
 			}
 		}
     }
-    //~ int s = 0;
-	//~ int flag = 0;
-		//~ for (int k=0; k<ROWS*COLS; k++) {
-			//~ if (polar[k].arr[2] == 0) {
-					//~ flag++;
-				//~ } else {
-					//~ flag = 0;												  // trecho para futura versao utilizando vetores.
-				//~ }
-			//~ if (flag <= 1) {
-				//~ polar_sorted[k] = polar[k];
-				//~ printf("Coord = %d,%d \t", polar[k].arr[0], polar[k].arr[1]);
-				//~ printf("Valor = %d\n", polar[k].arr[2]);
-				//~ s++;
-		//~ }
-	//~ }
+    int s = 0;
+	int flag = 0;
+		for (int k=0; k<ROWS*COLS; k++) {
+			if (polar[k].arr[2] == 0) {
+					flag++;
+				} else {
+					flag = 0;
+				}
+			if (flag <= 1) {
+				polar_sorted[s] = polar[k];
+				printf("Coord = %d,%d \t", polar[k].arr[0], polar[k].arr[1]);
+				printf("Valor = %d\n", polar[k].arr[2]);
+				s++;
+		}
+	}
 }
 
 // void take_picture(){
@@ -270,68 +259,123 @@ int main(void)
 	pinMode(pin_servo[2], OUTPUT);
 	pinMode(pin_led, OUTPUT);
 	pinMode(pin_btn, INPUT);
-	int i, h, p;
-	bool qual_csv = true;
+	int i, h;
 	
 	set_realtime_priority();
 	
+	//~ polaroide();
+	//~ sortido(true);
+	int j, k;
+	int ROWS = 0, COLS = 0;
+	using vec = std::vector<std::string>;
+	using matrix = std::vector<vec>;
+	vec linha;
+	matrix matriz;
+	//~ std::vector<int> > linha;
+	//~ std::vector<linha> > matrix;
+	std::ifstream file("cartesianas.csv");
+	
+	std::string line, val;
+
+	//~ while( getline( file, row ) )
+	//~ {
+		//~ ROWS++;
+		//~ std::stringstream ss( row );
+		//~ while ( getline ( ss, item, ',' ) ) linha.push_back( item );
+		//~ matriz.push_back( linha );
+	//~ }
+
+	while( std::getline( file, line ) ) {
+		if ( !file.good() )
+			break;
+
+		std::stringstream iss(line);
+
+		while ( std::getline ( iss, val, ',' ) )
+		{
+			if ( !iss.good() )
+				break;
+			
+			//~ std::stringstream convertor(val);
+			linha.push_back( val.str() );
+		}
+		matriz.push_back( linha );
+	}
+	
+	//~ for(int i=0;i<ROWS*COLS;i++) {
+		//~ for(int j=0; j<ROWS*COLS; j++) {
+			//~ if(polar[j+1].arr[a] < polar[j].arr[a])
+			//~ {
+				//~ std::swap(matrix[j+1].arr[0], polar[j].arr[0]);
+				//~ std::swap(matrix[j+1].arr[1], polar[j].arr[1]);
+				//~ std::swap(matrix[j+1].arr[2], polar[j].arr[2]);
+			//~ } else if ((polar[j+1].arr[a] == polar[j].arr[a]) && (polar[j+1].arr[b] < polar[j].arr[b])) {
+				//~ std::swap(polar[j+1].arr[0], polar[j].arr[0]);
+				//~ std::swap(polar[j+1].arr[1], polar[j].arr[1]);
+				//~ std::swap(polar[j+1].arr[2], polar[j].arr[2]);
+			//~ }
+		//~ }
+    //~ }
+	
 	while(1)
 	{
-		polaroide(qual_csv);
-		sortido(true);
-		p = 0;
-		while(p < 1) // mudar de acordo com quantas vezes desejar imprimir a mesma matrix
-		{
-			//~ printf("Digite um ângulo entre -90 e 90 graus: ");
-			//~ scanf("%f", &angulo[0]);
-			//~ scanf("%f", &angulo[1]);
-			//~ scanf("%f", &angulo[2]);
-			
-			for (h=0; h<(sizeof(polar)/sizeof(coord)); h++) {
-				//~ angulo = polar_sorted[h];
-				angulo = polar[h];
-				//~ angulo = {h, h, 0};
-				//~ printf("%d\n", h);
-				//~ angulo = {polar_sorted[h].arr[0], polar_sorted[h].arr[1], 0};
-				//~ angulo_anterior = {-45, -45, -45};
-			
-			//~ for (j=0; j<ROWS; j++) {
-				//~ for (k=0; k<COLS; k++) {
-					//~ pixel.arr[0] = k;
-					//~ pixel.arr[1] = j;
-					//~ pixel.arr[2] = matriz[k][j];
-					//~ printf("Coord = %d,%d \t", k, j);
-					//~ printf("Valor = %d\n", pixel.arr[2]);
-					//~ pixel.arr[0] = 50;
-					//~ pixel.arr[1] = 67.5;
-					//~ pixel.arr[2] = 0.0;
-					if (angulo.arr[2] != 0) {
-						//~ angulo = pixels_to_polar(pixel);
+		//~ printf("Digite um ângulo entre -90 e 90 graus: ");
+		//~ scanf("%f", &angulo[0]);
+		//~ scanf("%f", &angulo[1]);
+		//~ scanf("%f", &angulo[2]);
+		
+		//~ pthread_t thId;
+		//~ thId = pthread_self();
+		//~ pthread_attr_t thAttr;
+		//~ int policy = 0;
+		//~ int max_prio_for_policy = 0;
 
-				digitalWrite(pin_led, HIGH);
-				usleep(300000);
-				digitalWrite(pin_led, LOW);
-			
+		//~ pthread_attr_init(&thAttr);
+		//~ pthread_attr_getschedpolicy(&thAttr, &policy);
+		//~ max_prio_for_policy = sched_get_priority_max(policy);
+
+
+		//~ pthread_setschedprio(thId, max_prio_for_policy);
+		//~ pthread_attr_destroy(&thAttr);
+		//~ for (h=0; h<(sizeof(polar_sorted)/sizeof(coord)); h++) {
+			//~ angulo = polar_sorted[h];
+			//~ angulo = {h, h, 0};
+			//~ printf("%d\n", h);
+			//~ angulo = {polar_sorted[h].arr[0], polar_sorted[h].arr[1], 0};
+			//~ angulo_anterior = {-45, -45, -45};
+		
+		for (j=0; j<ROWS; j++) {
+			for (k=0; k<COLS; k++) {
+				pixel.arr[0] = k;
+				pixel.arr[1] = j;
+				pixel.arr[2] = matriz[k][j];
+				printf("Coord = %d,%d \t", k, j);
+				printf("Valor = %d\n", pixel.arr[2]);
+				//~ pixel.arr[0] = 50;
+				//~ pixel.arr[1] = 67.5;
+				//~ pixel.arr[2] = 0.0;
+				if (pixel.arr[2] != 0) {
+					angulo = pixels_to_polar(pixel);
+
+					digitalWrite(pin_led, HIGH);
+					usleep(300000);
+					digitalWrite(pin_led, LOW);
 				
-				for(i=2; i>=0; i--)
-				{
 					
-					printf("motor: %d\t angulo: %.2f\n", i, angulo.arr[i]);
-					pid_filho = fork();
-					if(pid_filho==0) {
-						//~ control_servo(0, 0, pin_servo[i]);
-						control_servo(angulo_anterior.arr[i], angulo.arr[i], pin_servo[i]);
-					}
-					if(pid_filho != 0) {
-						angulo_anterior.arr[i] = angulo.arr[i];
-						//kill(pid_filho, SIGKILL);
+					for(i=2; i>=0; i--)
+					{
+						pid_filho = fork();
+						if(pid_filho==0)
+							//~ control_servo(angulo_anterior.arr[i], 0, pin_servo[i]);
+							control_servo(angulo_anterior.arr[i], angulo.arr[i], pin_servo[i]);
+							printf("motor: %d\tangulo: %.2f\n", i, angulo.arr[i]);
+						if(pid_filho != 0)
+							angulo_anterior.arr[i] = angulo.arr[i];
+							//kill(pid_filho, SIGKILL); 
+						}
 					}
 				}
 			}
-			}
-			p++;
 		}
-		qual_csv = !qual_csv;
-	}
 	return 0;
 }
